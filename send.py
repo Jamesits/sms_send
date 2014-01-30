@@ -1,13 +1,16 @@
 # -*- coding=utf-8 -*-
 
+# config the following lines
+adb_path = r"C:\Users\zhj\Desktop\adb\adb.exe"
+msg = u"Hello world"
+file_encode = "utf8"
+filename = "contant2.txt"
+
 import os
 import re
 import time
 
-adb_path = r"C:\Users\zhj\Desktop\adb\adb.exe"
-msg = u"测试一下 "
-file_encode = "utf8"
-filename = "contant2.txt"
+
 num_list = []
 
 def solve_offline():
@@ -66,7 +69,7 @@ if __name__ == "__main__":
     for i in num_list:
         print i
         
-    send_sure("13165917133", u"朱焕杰祝您新年快乐！")
+    send_sure("13165917133", msg)
 
 
 #adb shell "su kill $(ps | busybox grep com.llinteger.adb_sms | busybox tr -s ' ' | busybox cut -d ' ' -f2)"
