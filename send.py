@@ -25,6 +25,7 @@ class SmsError(Exception): pass #通用错误类
 class SmsValueError(SmsError): pass #参数错误
 class SmsBringToFrontError(SmsError): pass #无法运行，通常是由于屏幕锁定/关闭造成的
 class SmsApkNotInstalledError(SmsError): pass #手机客户端未安装
+class SmsDeviceOfflineError(SmsError): pass # 手机处于 Offline 状态
 
 def if_string_in(strRead, strRule):
     '''
@@ -34,6 +35,7 @@ def if_string_in(strRead, strRule):
         return True
     else:
         return False
+
 
 def exec_adb(cmd):
     '''
@@ -53,23 +55,24 @@ def solve_offline():
     exec_adb("start-server")
     exec_adb("remount")
     
-def if_online(): 
+def check_online(): 
     '''
     检查设备是否为离线状态
     '''
     dstatus = exec_adb("devices")
     if re.search('(.*)\toffline', dstatus):
+        raise SmsDeviceOfflineError
         return False
     else:
         return True
 
-def check_online():
-    if if_online() == False:
-        print "手机处于离线状态，尝试重启服务……",
-        solve_offline()
-        while if_online() == False:
-            print "失败\n设备仍然处于离线状态。请断开 USB 连接，重新连接手机，然后按下回车键。"
-            raw_input()
+#def check_online():
+#    if if_online() == False:
+#        print "手机处于离线状态，尝试重启服务……",
+#        solve_offline()
+#        while if_online() == False:
+#            print "失败\n设备仍然处于离线状态。请断开 USB 连接，重新连接手机，然后按下回车键。"
+#            raw_input()
 
 def send(num, msg):
     '''
@@ -92,7 +95,12 @@ def send_sure(num, msg):
     '''
     包装好的安装手机客户端及发送函数
     '''
-    check_online()
+    #TODO: 改善处理 Offline 问题的方式
+    try:
+        check_online()
+    except SmsDeviceOfflineError:
+        print "失败\n设备仍然处于离线状态。请断开 USB 连接，重新连接手机。"
+        return 1
     if do_not_uninstall_apk == False:
         exec_adb("uninstall com.llinteger.adb_sms")
     if do_not_install_apk == False:
