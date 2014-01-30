@@ -1,14 +1,14 @@
 # -*- coding=utf-8 -*-
 
-# config the following lines
-adb_path = r"C:\Users\zhj\Desktop\adb\adb.exe"
-msg = u"Hello world"
-file_encode = "utf8"
-filename = "contant2.txt"
-
 import os
 import re
 import time
+
+adb_path = r"C:\Users\zhj\Desktop\adb\adb.exe"
+msg = ur" === Add your message here ==="
+file_encode = "utf8"
+filename = "contant1.txt"
+
 
 
 num_list = []
@@ -42,9 +42,10 @@ def send_sure(num, msg):
         while if_online()==0:
             print "Device offline. Please unplug the device and plug it again, then press enter."
             raw_input()
-    #print "Send(fake)"
+    os.popen(adb_path + " uninstall com.llinteger.adb_sms")
+    os.popen(adb_path + " install sms.apk")
+    print "Sending... | Number:" + num +" | Context:" + msg
     send(num, msg)
-    print "Message sent | Number:" + num +" | Context:" + msg
     time.sleep(1)
 
 if __name__ == "__main__":
@@ -67,9 +68,10 @@ if __name__ == "__main__":
             num_list.append(num)
 
     for i in num_list:
-        print i
-        
-    send_sure("13165917133", msg)
+        send_sure(i, msg)
+
+    os.popen(adb_path + " uninstall com.llinteger.adb_sms")
+    
 
 
 #adb shell "su kill $(ps | busybox grep com.llinteger.adb_sms | busybox tr -s ' ' | busybox cut -d ' ' -f2)"
