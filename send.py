@@ -19,6 +19,12 @@ import time
 
 num_list = []
 
+def if_string_in(strRead, strRule):
+    if len(sStr1 and sStr2)>0:
+        return 1
+    else:
+        return 0
+
 def exec_adb(cmd):
     st = os.popen(adb_path + " " + cmd).read()
     if debug == 1:
@@ -56,7 +62,17 @@ def send(num, msg):
     '''
     发送短信
     '''
-    exec_adb('shell am start -n com.llinteger.adb_sms/com.llinteger.adb_sms.MainActivity -e target_num ' + num.encode("utf-8") + ' -e msg_body "' + msg.encode("utf-8") + '\n"')
+    r = exec_adb('shell am start -n com.llinteger.adb_sms/com.llinteger.adb_sms.MainActivity -e target_num ' + num.encode("utf-8") + ' -e msg_body "' + msg.encode("utf-8") + '\n"')
+    if if_string_in(r, "Starting: Intent { cmp=com.llinteger.adb_sms/.MainActivity (has extras) }
+") #发送成功
+        return 0
+    elif if_string_in(r, "Error: Activity not started, unable to resolve Intent") # 参数错误
+        return 1
+    elif if_string_in(r, "Warning: Activity not started, its current task has been brought to the front") # 屏幕已锁定
+        return 2
+    elif if_string_in(r, "Error type 3") # 手机客户端未安装
+        return 3
+
 
 def send_sure(num, msg):
     '''
