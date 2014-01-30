@@ -8,12 +8,10 @@ filename = "contant1.txt"       # 文件路径
 #################################
 
 regex = r"(1\d{2}[ -]?\d{4}[ -]?\d{4})," # 匹配用的正则表达式。末尾的逗号是为 CSV 文件优化的，不需要的话可以删掉。
-debug = 1       #调试开关
-do_not_really_send = 0 #调试：不要真的发送
-
-do_not_install_apk = 1 #调试：不要安装 apk
-
-do_not_uninstall_apk = 1 #调试：不要卸载 apk
+debug = False       #调试开关
+do_not_really_send = False #调试：不要真的发送
+do_not_install_apk = False #调试：不要安装 apk
+do_not_uninstall_apk = False #调试：不要卸载 apk
 sleep_time = 1  #两次发送延时
 
 
@@ -32,17 +30,17 @@ def if_string_in(strRead, strRule):
     '''
 检查字符串包含关系
 '''
-    if len(strRead and strRule)>0:
-        return 1
+    if strRule in strRead:
+        return True
     else:
-        return 0
+        return False
 
 def exec_adb(cmd):
     '''
 运行 adb 命令
 '''
     st = os.popen(adb_path + " " + cmd).read()
-    if debug == 1:
+    if debug:
         print "[adb command]" + adb_path + " " + cmd
         print "[adb result]" + st
     return st
@@ -61,15 +59,15 @@ def if_online():
     '''
     dstatus = exec_adb("devices")
     if re.search('(.*)\toffline', dstatus):
-        return 0
+        return False
     else:
-        return 1
+        return True
 
 def check_online():
-    if if_online()==0:
+    if if_online() == False:
         print "手机处于离线状态，尝试重启服务……",
         solve_offline()
-        while if_online()==0:
+        while if_online() == False:
             print "失败\n设备仍然处于离线状态。请断开 USB 连接，重新连接手机，然后按下回车键。"
             raw_input()
 
@@ -78,13 +76,13 @@ def send(num, msg):
     发送短信
     '''
     r = exec_adb('shell am start -n com.llinteger.adb_sms/com.llinteger.adb_sms.MainActivity -e target_num ' + num.encode("utf-8") + ' -e msg_body "' + msg.encode("utf-8") + '\n"')
-    if if_string_in(r, r"Warning: Activity not started, its current task has been brought to the front") == 1:
+    if if_string_in(r, r"Warning: Activity not started, its current task has been brought to the front"):
         raise SmsBringToFrontError,r
-    elif if_string_in(r, r"Error type 3") == 1:
+    elif if_string_in(r, r"Error type 3"):
         raise SmsApkNotInstalledError,r
-    elif if_string_in(r, r"Error: Activity not started, unable to resolve Intent") == 1:
+    elif if_string_in(r, r"Error: Activity not started, unable to resolve Intent"):
         raise SmsValueError,r
-    elif if_string_in(r, r'Starting: Intent { cmp=com.llinteger.adb_sms/.MainActivity (has extras) }') == 1:
+    elif if_string_in(r, r'Starting: Intent { cmp=com.llinteger.adb_sms/.MainActivity (has extras) }'):
         return r
     else:
         raise SmsError,r
@@ -95,9 +93,9 @@ def send_sure(num, msg):
     包装好的安装手机客户端及发送函数
     '''
     check_online()
-    if do_not_uninstall_apk == 0:
+    if do_not_uninstall_apk == False:
         exec_adb("uninstall com.llinteger.adb_sms")
-    if do_not_install_apk == 0:
+    if do_not_install_apk == False:
         exec_adb("install sms.apk")
     print "Sending... | Number:" + num +" | Context:" + msg
     try:
@@ -108,9 +106,9 @@ def send_sure(num, msg):
         print "请解锁手机，在开发者设置中勾选“保持唤醒状态”，然后按 Home 键直到主屏幕显示在手机屏幕上，然后按下回车键。"
         raw_input()
     except SmsApkNotInstalledError:
-        print "apk 未安装:"
+        print "错误：apk 未安装"
     except SmsError:
-        print "发生未知错误:"
+        print "发生未知错误"
     finally:
         time.sleep(sleep_time)
 
@@ -137,10 +135,10 @@ if __name__ == "__main__":
     print "按回车键开始发送。"
     raw_input()
 
-    if do_not_really_send == 0:
+    if do_not_really_send == False:
         for i in num_list:
             send_sure(i, msg)
-        if do_not_uninstall_apk == 0:
+        if do_not_uninstall_apk == False:
             exec_adb("uninstall com.llinteger.adb_sms")
     else:
         print "调试模式，发送已取消。"
