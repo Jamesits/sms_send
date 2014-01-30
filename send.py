@@ -5,7 +5,6 @@ import re
 import time
 
 adb_path = r"C:\Users\zhj\Desktop\adb\adb.exe"
-num = "+8613165917133"
 msg = u"测试一下 "
 file_encode = "utf8"
 filename = "contant2.txt"
