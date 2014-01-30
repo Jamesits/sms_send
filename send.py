@@ -4,12 +4,16 @@
 adb_path = r"adb.exe"            # adb.exe 可执行文件路径
 msg = ur"短信内容"                # 短信内容
 file_encode = "utf8"             # 文件编码（建议使用 UTF-8）
-filename = "contant2.txt"       # 文件路径
+filename = "contant1.txt"       # 文件路径
 #################################
 
 regex = r"(1\d{2}[ -]?\d{4}[ -]?\d{4})," # 匹配用的正则表达式。末尾的逗号是为 CSV 文件优化的，不需要的话可以删掉。
-debug = 0       #调试开关
+debug = 1       #调试开关
 do_not_really_send = 0 #调试：不要真的发送
+
+do_not_install_apk = 1 #调试：不要安装 apk
+
+do_not_uninstall_apk = 1 #调试：不要卸载 apk
 sleep_time = 1  #两次发送延时
 
 
@@ -19,13 +23,24 @@ import time
 
 num_list = []
 
+class SmsError(Exception): pass #通用错误类
+class SmsValueError(SmsError): pass #参数错误
+class SmsBringToFrontError(SmsError): pass #无法运行，通常是由于屏幕锁定/关闭造成的
+class SmsApkNotInstalledError(SmsError): pass #手机客户端未安装
+
 def if_string_in(strRead, strRule):
-    if len(sStr1 and sStr2)>0:
+    '''
+检查字符串包含关系
+'''
+    if len(strRead and strRule)>0:
         return 1
     else:
         return 0
 
 def exec_adb(cmd):
+    '''
+运行 adb 命令
+'''
     st = os.popen(adb_path + " " + cmd).read()
     if debug == 1:
         print "[adb command]" + adb_path + " " + cmd
@@ -63,27 +78,41 @@ def send(num, msg):
     发送短信
     '''
     r = exec_adb('shell am start -n com.llinteger.adb_sms/com.llinteger.adb_sms.MainActivity -e target_num ' + num.encode("utf-8") + ' -e msg_body "' + msg.encode("utf-8") + '\n"')
-    if if_string_in(r, "Starting: Intent { cmp=com.llinteger.adb_sms/.MainActivity (has extras) }
-") #发送成功
-        return 0
-    elif if_string_in(r, "Error: Activity not started, unable to resolve Intent") # 参数错误
-        return 1
-    elif if_string_in(r, "Warning: Activity not started, its current task has been brought to the front") # 屏幕已锁定
-        return 2
-    elif if_string_in(r, "Error type 3") # 手机客户端未安装
-        return 3
-
+    if if_string_in(r, r"Warning: Activity not started, its current task has been brought to the front") == 1:
+        raise SmsBringToFrontError,r
+    elif if_string_in(r, r"Error type 3") == 1:
+        raise SmsApkNotInstalledError,r
+    elif if_string_in(r, r"Error: Activity not started, unable to resolve Intent") == 1:
+        raise SmsValueError,r
+    elif if_string_in(r, r'Starting: Intent { cmp=com.llinteger.adb_sms/.MainActivity (has extras) }') == 1:
+        return r
+    else:
+        raise SmsError,r
+    
 
 def send_sure(num, msg):
     '''
     包装好的安装手机客户端及发送函数
     '''
     check_online()
-    exec_adb( "uninstall com.llinteger.adb_sms")
-    exec_adb( "install sms.apk")
+    if do_not_uninstall_apk == 0:
+        exec_adb("uninstall com.llinteger.adb_sms")
+    if do_not_install_apk == 0:
+        exec_adb("install sms.apk")
     print "Sending... | Number:" + num +" | Context:" + msg
-    send(num, msg)
-    time.sleep(sleep_time)
+    try:
+        send(num, msg)
+    except SmsValueError:
+        print "手机号码错误"
+    except SmsBringToFrontError:
+        print "请解锁手机，在开发者设置中勾选“保持唤醒状态”，然后按 Home 键直到主屏幕显示在手机屏幕上，然后按下回车键。"
+        raw_input()
+    except SmsApkNotInstalledError:
+        print "apk 未安装:"
+    except SmsError:
+        print "发生未知错误:"
+    finally:
+        time.sleep(sleep_time)
 
 if __name__ == "__main__":
     print "============= 短信发送脚本 =============="
@@ -111,6 +140,7 @@ if __name__ == "__main__":
     if do_not_really_send == 0:
         for i in num_list:
             send_sure(i, msg)
-        os.popen(adb_path + "uninstall com.llinteger.adb_sms")
+        if do_not_uninstall_apk == 0:
+            exec_adb("uninstall com.llinteger.adb_sms")
     else:
-        print "调试模式，禁止发送。"
+        print "调试模式，发送已取消。"
