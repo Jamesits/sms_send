@@ -12,3 +12,5 @@ Apk from: http://www.zhihu.com/question/21329679
 
 
 James Swineson
+
+PS: develop paused. My school managed to make our winter vacation shorter by bypassing laws & rules. No more time to develop.
